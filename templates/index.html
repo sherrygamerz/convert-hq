@@ -31,10 +31,6 @@
     input[type="file"] {
       display: none;
     }
-    img {
-      max-width: 100%;
-      margin-top: 20px;
-    }
     .toggle-mode {
       margin: 10px 0;
       cursor: pointer;
@@ -47,66 +43,116 @@
       cursor: pointer;
     }
     select, input[type="text"] {
-      padding: 8px;
-      margin: 5px;
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+    }
+    #preview {
+      margin-top: 20px;
+    }
+    img.preview-thumb {
+      max-width: 100px;
+      margin: 10px;
+      border: 1px solid #ccc;
+    }
+    .progress {
+      display: none;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Image Converter</h1>
-
-    <div class="toggle-mode" onclick="toggleDarkMode()">Toggle Dark Mode</div>
-
-    <form id="uploadForm" method="POST" action="/convert" enctype="multipart/form-data">
-      <div class="drop-zone" onclick="document.getElementById('image').click()" ondrop="handleDrop(event)" ondragover="event.preventDefault()">
-        Drop image here or click to upload
-        <input type="file" name="image" id="image" accept="image/*" required onchange="previewImage(event)" />
-      </div>
-
-      <div>
-        <select name="format" required>
-          <option value="">Select format</option>
-          <option value="JPEG">JPEG</option>
-          <option value="PNG">PNG</option>
-          <option value="WEBP">WEBP</option>
-        </select>
-        <input type="text" name="filename" placeholder="Output filename (optional)" />
-        <br/>
-        <button type="submit">Convert</button>
-      </div>
+    <div class="toggle-mode" onclick="toggleMode()">Toggle Dark Mode</div>
+    <form id="upload-form" method="post" enctype="multipart/form-data">
+      <label class="drop-zone" id="drop-zone">
+        Click or Drop Images Here
+        <input type="file" name="images" id="images" accept="image/*" multiple>
+      </label>
+      <select name="format" id="format">
+        <option value="JPEG">JPEG</option>
+        <option value="PNG">PNG</option>
+        <option value="WEBP">WEBP</option>
+        <option value="AVIF">AVIF</option>
+      </select>
+      <input type="text" name="filename" placeholder="Custom filename (optional)">
+      <button type="submit">Convert</button>
     </form>
-
+    <div class="progress" id="progress">Processing...</div>
     <div id="preview"></div>
   </div>
 
   <script>
-    function previewImage(event) {
-      const preview = document.getElementById('preview');
-      preview.innerHTML = '';
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = document.createElement('img');
-        img.src = e.target.result;
-        preview.appendChild(img);
-      };
-      reader.readAsDataURL(file);
-    }
+    const form = document.getElementById('upload-form');
+    const dropZone = document.getElementById('drop-zone');
+    const input = document.getElementById('images');
+    const preview = document.getElementById('preview');
+    const progress = document.getElementById('progress');
 
-    function handleDrop(event) {
-      event.preventDefault();
-      const dt = event.dataTransfer;
-      const files = dt.files;
-      if (files.length) {
-        document.getElementById('image').files = files;
-        previewImage({ target: { files } });
-      }
-    }
-
-    function toggleDarkMode() {
+    function toggleMode() {
       document.body.classList.toggle('dark-mode');
+      localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
     }
+
+    window.onload = () => {
+      if (localStorage.getItem('theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+      }
+    };
+
+    dropZone.addEventListener('click', () => input.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.background = "#eee";
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.background = "#fff";
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      input.files = e.dataTransfer.files;
+      showPreview(input.files);
+      dropZone.style.background = "#fff";
+    });
+
+    input.addEventListener('change', () => showPreview(input.files));
+
+    function showPreview(files) {
+      preview.innerHTML = "";
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.className = 'preview-thumb';
+          preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      progress.style.display = 'block';
+
+      fetch('/convert', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.blob())
+      .then(blob => {
+        const link = document.createElement('a');
+        link.href = window.URL.createObjectURL(blob);
+        link.download = "converted_images.zip";
+        link.click();
+        progress.style.display = 'none';
+      });
+    });
   </script>
 </body>
 </html>
