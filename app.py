@@ -1,41 +1,74 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, redirect, url_for
+from werkzeug.utils import secure_filename
 from PIL import Image
-import io
 import os
+import io
+import zipfile
+import uuid
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def index():
     return render_template('index.html')
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    if 'image' not in request.files:
-        return "No image uploaded", 400
+    images = request.files.getlist('images')
+    target_format = request.form.get('format', '').upper()
+    resize_width = request.form.get('resizeWidth')
+    resize_height = request.form.get('resizeHeight')
 
-    image_file = request.files['image']
-    format = request.form.get('format')
-    custom_filename = request.form.get('filename') or 'converted'
+    resize = resize_width and resize_height
+    if resize:
+        resize_width = int(resize_width)
+        resize_height = int(resize_height)
 
-    if not image_file or image_file.filename == '':
-        return "No selected file", 400
-    if not format:
-        return "No format selected", 400
+    converted_files = []
 
-    try:
-        img = Image.open(image_file.stream)
-        img_io = io.BytesIO()
-        img.save(img_io, format=format.upper())
-        img_io.seek(0)
+    for image in images:
+        filename = secure_filename(image.filename)
+        img = Image.open(image.stream).convert("RGB")
 
-        extension = format.lower()
-        filename = f"{custom_filename}.{extension}"
+        if resize:
+            img = img.resize((resize_width, resize_height))
 
-        return send_file(img_io, as_attachment=True, download_name=filename, mimetype=f'image/{extension}')
-    except Exception as e:
-        return f"Conversion failed: {str(e)}", 500
+        buf = io.BytesIO()
+
+        if target_format == 'PDF':
+            img.save(buf, format='PDF')
+        else:
+            img.save(buf, format=target_format)
+
+        buf.seek(0)
+        converted_files.append((filename, buf))
+
+    # If converting to PDF, combine all into one
+    if target_format == 'PDF' and len(converted_files) > 1:
+        output = io.BytesIO()
+        images_for_pdf = [Image.open(f[1]) for f in converted_files]
+        images_for_pdf[0].save(output, format='PDF', save_all=True, append_images=images_for_pdf[1:])
+        output.seek(0)
+        return send_file(output, as_attachment=True, download_name='converted.pdf', mimetype='application/pdf')
+
+    elif len(converted_files) == 1:
+        name, file = converted_files[0]
+        new_name = os.path.splitext(name)[0] + '.' + target_format.lower()
+        return send_file(file, as_attachment=True, download_name=new_name)
+
+    else:
+        # Multiple files — zip them
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, 'w') as zf:
+            for name, file in converted_files:
+                new_name = os.path.splitext(name)[0] + '.' + target_format.lower()
+                zf.writestr(new_name, file.read())
+        zip_buf.seek(0)
+        return send_file(zip_buf, as_attachment=True, download_name='converted_files.zip', mimetype='application/zip')
 
 if __name__ == '__main__':
+    if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
