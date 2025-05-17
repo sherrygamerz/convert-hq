@@ -3,43 +3,251 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Image Converter</title>
+  <title>Image Converter | Sherry Tools</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+      width: 100%;
+    }
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    .preview-container {
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .format-option {
+      transition: all 0.2s ease;
+    }
+    .format-option:hover {
+      transform: translateY(-2px);
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
-
-  <div class="bg-white shadow-xl rounded-xl p-8 max-w-md w-full space-y-6">
-    <h1 class="text-3xl font-bold text-gray-800 text-center">Image Converter</h1>
-
-    <form action="/convert" method="POST" enctype="multipart/form-data" class="space-y-4">
-      <div>
-        <label class="block font-medium text-gray-700 mb-1">Upload Image</label>
-        <input type="file" name="image" accept="image/*" required class="w-full border border-gray-300 rounded px-3 py-2" />
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+  
+  <div class="max-w-xl w-full mx-auto">
+    <div class="bg-white shadow-2xl rounded-2xl overflow-hidden">
+      <!-- Header -->
+      <div class="bg-primary-600 text-white p-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-primary-500 rounded-full -mr-16 -mt-16 opacity-50"></div>
+        <div class="absolute bottom-0 left-0 w-24 h-24 bg-primary-700 rounded-full -ml-12 -mb-12 opacity-30"></div>
+        <div class="relative z-10">
+          <h1 class="text-3xl font-bold tracking-tight">Image Converter</h1>
+          <p class="text-primary-100 mt-1">Convert your images to any format in seconds</p>
+        </div>
       </div>
-
-      <div>
-        <label class="block font-medium text-gray-700 mb-1">Convert To Format</label>
-        <select name="format" required class="w-full border border-gray-300 rounded px-3 py-2">
-          <option value="JPEG">JPEG</option>
-          <option value="PNG">PNG</option>
-          <option value="WEBP">WEBP</option>
-          <option value="BMP">BMP</option>
-          <option value="GIF">GIF</option>
-        </select>
+      
+      <!-- Main Content -->
+      <div class="p-6">
+        <form action="/convert" method="POST" enctype="multipart/form-data" class="space-y-6">
+          
+          <!-- Image Upload -->
+          <div class="space-y-2">
+            <label class="block font-medium text-gray-700">Upload Image</label>
+            <div class="file-input-wrapper">
+              <div id="upload-btn" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary-400 transition-colors cursor-pointer bg-gray-50">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                <p class="text-gray-500">Drag and drop your image here or <span class="text-primary-600 font-medium">browse files</span></p>
+                <p class="text-xs text-gray-400 mt-2">Supports JPG, PNG, WEBP, BMP, GIF</p>
+              </div>
+              <input type="file" name="image" id="image-input" accept="image/*" required class="cursor-pointer" onchange="previewImage(this)"/>
+            </div>
+          </div>
+          
+          <!-- Image Preview -->
+          <div id="preview-area" class="preview-container hidden">
+            <div class="text-center w-full">
+              <img id="image-preview" class="max-h-48 mx-auto rounded-lg shadow-md" src="/placeholder.svg" alt="Preview">
+              <p id="file-name" class="mt-2 text-sm text-gray-500 truncate max-w-full"></p>
+              <button type="button" onclick="removeImage()" class="mt-2 text-xs text-red-500 hover:text-red-700">
+                <i class="fas fa-times"></i> Remove
+              </button>
+            </div>
+          </div>
+          
+          <!-- Format Selection -->
+          <div class="space-y-2">
+            <label class="block font-medium text-gray-700">Convert To Format</label>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <label class="format-option cursor-pointer">
+                <input type="radio" name="format" value="JPEG" class="sr-only" checked>
+                <div class="border rounded-lg p-3 text-center hover:shadow-md transition-all peer-checked:border-primary-500 peer-checked:bg-primary-50" id="format-jpeg">
+                  <i class="fas fa-file-image text-2xl text-gray-400 mb-1"></i>
+                  <p class="text-sm font-medium">JPEG</p>
+                </div>
+              </label>
+              <label class="format-option cursor-pointer">
+                <input type="radio" name="format" value="PNG" class="sr-only">
+                <div class="border rounded-lg p-3 text-center hover:shadow-md transition-all" id="format-png">
+                  <i class="fas fa-file-image text-2xl text-gray-400 mb-1"></i>
+                  <p class="text-sm font-medium">PNG</p>
+                </div>
+              </label>
+              <label class="format-option cursor-pointer">
+                <input type="radio" name="format" value="WEBP" class="sr-only">
+                <div class="border rounded-lg p-3 text-center hover:shadow-md transition-all" id="format-webp">
+                  <i class="fas fa-file-image text-2xl text-gray-400 mb-1"></i>
+                  <p class="text-sm font-medium">WEBP</p>
+                </div>
+              </label>
+              <label class="format-option cursor-pointer">
+                <input type="radio" name="format" value="BMP" class="sr-only">
+                <div class="border rounded-lg p-3 text-center hover:shadow-md transition-all" id="format-bmp">
+                  <i class="fas fa-file-image text-2xl text-gray-400 mb-1"></i>
+                  <p class="text-sm font-medium">BMP</p>
+                </div>
+              </label>
+              <label class="format-option cursor-pointer">
+                <input type="radio" name="format" value="GIF" class="sr-only">
+                <div class="border rounded-lg p-3 text-center hover:shadow-md transition-all" id="format-gif">
+                  <i class="fas fa-file-image text-2xl text-gray-400 mb-1"></i>
+                  <p class="text-sm font-medium">GIF</p>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <!-- Filename -->
+          <div class="space-y-2">
+            <label class="block font-medium text-gray-700">Custom File Name (Optional)</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-pen-alt text-gray-400"></i>
+              </div>
+              <input type="text" name="filename" placeholder="converted-image" 
+                class="pl-10 w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" />
+            </div>
+            <p class="text-xs text-gray-500">Leave empty to use original filename</p>
+          </div>
+          
+          <!-- Submit Button -->
+          <button type="submit" class="w-full bg-primary-600 text-white rounded-lg py-3 px-4 font-semibold hover:bg-primary-700 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center space-x-2">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Convert & Download</span>
+          </button>
+        </form>
       </div>
-
-      <div>
-        <label class="block font-medium text-gray-700 mb-1">Custom File Name (Optional)</label>
-        <input type="text" name="filename" placeholder="converted-image" class="w-full border border-gray-300 rounded px-3 py-2" />
+    </div>
+    
+    <!-- Features -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary-100 p-2 rounded-full">
+            <i class="fas fa-bolt text-primary-600"></i>
+          </div>
+          <h3 class="font-medium">Fast Conversion</h3>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Convert your images in seconds with our optimized engine</p>
       </div>
-
-      <button type="submit" class="w-full bg-blue-600 text-white rounded py-2 font-semibold hover:bg-blue-700 transition">
-        Convert & Download
-      </button>
-    </form>
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary-100 p-2 rounded-full">
+            <i class="fas fa-lock text-primary-600"></i>
+          </div>
+          <h3 class="font-medium">Secure Processing</h3>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Your images are processed securely and never stored</p>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow-md">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary-100 p-2 rounded-full">
+            <i class="fas fa-image text-primary-600"></i>
+          </div>
+          <h3 class="font-medium">High Quality</h3>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">Maintain the highest possible quality during conversion</p>
+      </div>
+    </div>
+    
+    <p class="mt-8 text-center text-gray-500 text-sm">&copy; 2025 Sherry Tools. All rights reserved.</p>
   </div>
 
-  <p class="mt-6 text-gray-500 text-sm">&copy; 2025 Sherry Tools. All rights reserved.</p>
-
+  <script>
+    // Format selection
+    const formatOptions = document.querySelectorAll('.format-option input');
+    const formatDivs = document.querySelectorAll('.format-option div');
+    
+    formatOptions.forEach((option, index) => {
+      option.addEventListener('change', function() {
+        formatDivs.forEach(div => {
+          div.classList.remove('border-primary-500', 'bg-primary-50');
+        });
+        formatDivs[index].classList.add('border-primary-500', 'bg-primary-50');
+      });
+    });
+    
+    // Image preview
+    function previewImage(input) {
+      const preview = document.getElementById('image-preview');
+      const previewArea = document.getElementById('preview-area');
+      const fileName = document.getElementById('file-name');
+      const uploadBtn = document.getElementById('upload-btn');
+      
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          fileName.textContent = input.files[0].name;
+          previewArea.classList.remove('hidden');
+          uploadBtn.classList.add('border-primary-400', 'bg-primary-50');
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+    
+    function removeImage() {
+      const input = document.getElementById('image-input');
+      const previewArea = document.getElementById('preview-area');
+      const uploadBtn = document.getElementById('upload-btn');
+      
+      input.value = '';
+      previewArea.classList.add('hidden');
+      uploadBtn.classList.remove('border-primary-400', 'bg-primary-50');
+    }
+    
+    // Initialize first format as selected
+    document.getElementById('format-jpeg').classList.add('border-primary-500', 'bg-primary-50');
+  </script>
 </body>
 </html>
