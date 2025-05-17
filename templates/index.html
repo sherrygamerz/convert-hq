@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image Converter</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+  <form action="/convert" method="POST" enctype="multipart/form-data" class="bg-gray-800 p-8 rounded-xl shadow-lg w-96">
+    <h1 class="text-2xl font-bold mb-6 text-center">Image Converter</h1>
+    <input type="file" name="image" class="mb-4 w-full text-sm" required />
+    <select name="format" class="mb-4 w-full text-gray-900 p-2 rounded">
+      <option value="PNG">PNG</option>
+      <option value="JPEG">JPEG</option>
+      <option value="WEBP">WEBP</option>
+    </select>
+    <button type="submit" class="bg-blue-500 hover:bg-blue-600 w-full py-2 rounded">Convert</button>
+  </form>
+</body>
+</html>
