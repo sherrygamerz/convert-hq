@@ -2,157 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Image Converter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      color: #333;
-      transition: background 0.3s, color 0.3s;
-    }
-    .dark-mode {
-      background: #121212;
-      color: #e0e0e0;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      padding: 30px;
-      text-align: center;
-    }
-    .drop-zone {
-      border: 2px dashed #aaa;
-      padding: 30px;
-      margin-bottom: 20px;
-      cursor: pointer;
-      background: #fff;
-    }
-    input[type="file"] {
-      display: none;
-    }
-    .toggle-mode {
-      margin: 10px 0;
-      cursor: pointer;
-      color: blue;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-top: 20px;
-      cursor: pointer;
-    }
-    select, input[type="text"] {
-      padding: 10px;
-      margin-top: 10px;
-      width: 100%;
-    }
-    #preview {
-      margin-top: 20px;
-    }
-    img.preview-thumb {
-      max-width: 100px;
-      margin: 10px;
-      border: 1px solid #ccc;
-    }
-    .progress {
-      display: none;
-      margin-top: 10px;
-    }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="container">
-    <h1>Image Converter</h1>
-    <div class="toggle-mode" onclick="toggleMode()">Toggle Dark Mode</div>
-    <form id="upload-form" method="post" enctype="multipart/form-data">
-      <label class="drop-zone" id="drop-zone">
-        Click or Drop Images Here
-        <input type="file" name="images" id="images" accept="image/*" multiple>
-      </label>
-      <select name="format" id="format">
-        <option value="JPEG">JPEG</option>
-        <option value="PNG">PNG</option>
-        <option value="WEBP">WEBP</option>
-        <option value="AVIF">AVIF</option>
-      </select>
-      <input type="text" name="filename" placeholder="Custom filename (optional)">
-      <button type="submit">Convert</button>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+  <div class="bg-white shadow-xl rounded-xl p-8 max-w-md w-full space-y-6">
+    <h1 class="text-3xl font-bold text-gray-800 text-center">Image Converter</h1>
+
+    <form action="/convert" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <div>
+        <label class="block font-medium text-gray-700 mb-1">Upload Image</label>
+        <input type="file" name="image" accept="image/*" required class="w-full border border-gray-300 rounded px-3 py-2" />
+      </div>
+
+      <div>
+        <label class="block font-medium text-gray-700 mb-1">Convert To Format</label>
+        <select name="format" required class="w-full border border-gray-300 rounded px-3 py-2">
+          <option value="JPEG">JPEG</option>
+          <option value="PNG">PNG</option>
+          <option value="WEBP">WEBP</option>
+          <option value="BMP">BMP</option>
+          <option value="GIF">GIF</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-medium text-gray-700 mb-1">Custom File Name (Optional)</label>
+        <input type="text" name="filename" placeholder="converted-image" class="w-full border border-gray-300 rounded px-3 py-2" />
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 text-white rounded py-2 font-semibold hover:bg-blue-700 transition">
+        Convert & Download
+      </button>
     </form>
-    <div class="progress" id="progress">Processing...</div>
-    <div id="preview"></div>
   </div>
 
-  <script>
-    const form = document.getElementById('upload-form');
-    const dropZone = document.getElementById('drop-zone');
-    const input = document.getElementById('images');
-    const preview = document.getElementById('preview');
-    const progress = document.getElementById('progress');
+  <p class="mt-6 text-gray-500 text-sm">&copy; 2025 Sherry Tools. All rights reserved.</p>
 
-    function toggleMode() {
-      document.body.classList.toggle('dark-mode');
-      localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-    }
-
-    window.onload = () => {
-      if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark-mode');
-      }
-    };
-
-    dropZone.addEventListener('click', () => input.click());
-
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.style.background = "#eee";
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.style.background = "#fff";
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      input.files = e.dataTransfer.files;
-      showPreview(input.files);
-      dropZone.style.background = "#fff";
-    });
-
-    input.addEventListener('change', () => showPreview(input.files));
-
-    function showPreview(files) {
-      preview.innerHTML = "";
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = e => {
-          const img = document.createElement('img');
-          img.src = e.target.result;
-          img.className = 'preview-thumb';
-          preview.appendChild(img);
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-      progress.style.display = 'block';
-
-      fetch('/convert', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => res.blob())
-      .then(blob => {
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = "converted_images.zip";
-        link.click();
-        progress.style.display = 'none';
-      });
-    });
-  </script>
 </body>
 </html>
